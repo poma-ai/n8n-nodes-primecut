@@ -1,0 +1,124 @@
+import type { IDataObject } from 'n8n-workflow';
+
+import type { JobResults } from './jobs';
+
+export type ReturnKind = 'chunksets' | 'chunks';
+
+/** What the node knows about the document, from the request or from the results' metadata. */
+export interface DocumentContext {
+	jobId: string;
+	fileName: string;
+	canonicalUrl?: string;
+}
+
+interface Chunk extends IDataObject {
+	chunk_index?: number;
+	content?: string;
+	depth?: number;
+	page?: number;
+	parent_chunk_index?: number | null;
+	lang?: string;
+	to_embed?: string;
+}
+
+interface Chunkset extends IDataObject {
+	chunkset_index?: number;
+	chunks?: number[];
+	contents?: string;
+	to_embed?: string;
+}
+
+/** The file name the results describe, when the request did not carry one (Job > Get Results). */
+export function fileNameFromResults(results: JobResults): string {
+	const metadata = results.metadata ?? {};
+	const source = typeof metadata.source_file === 'string' ? metadata.source_file : '';
+	const type = typeof metadata.source_type === 'string' ? metadata.source_type : '';
+	if (source && type && !source.toLowerCase().endsWith(`.${type.toLowerCase()}`)) {
+		return `${source}.${type}`;
+	}
+	return source || 'document';
+}
+
+function withEmbedText(target: IDataObject, text: string | undefined, embed: string | undefined) {
+	if (typeof embed === 'string' && embed !== text) target.embedText = embed;
+}
+
+/**
+ * One n8n item per chunkset: `text` plus flat fields a vector store loader can
+ * map. Page and heading come from the chunks the set spans.
+ */
+export function simplifyChunkset(
+	chunkset: Chunkset,
+	chunksByIndex: Map<number, Chunk>,
+	doc: DocumentContext,
+): IDataObject {
+	const indices = Array.isArray(chunkset.chunks)
+		? chunkset.chunks.filter((n): n is number => typeof n === 'number')
+		: [];
+	const members = indices.map((n) => chunksByIndex.get(n)).filter((c): c is Chunk => !!c);
+
+	const pages = members.map((c) => c.page).filter((p): p is number => typeof p === 'number');
+	const page = pages.find((p) => p > 0) ?? pages[0] ?? 0;
+
+	let heading: string | undefined;
+	if (members.length > 1) {
+		const shallowest = members.reduce((best, c) =>
+			(c.depth ?? Infinity) < (best.depth ?? Infinity) ? c : best,
+		);
+		if (typeof shallowest.content === 'string' && shallowest.content.trim()) {
+			heading = shallowest.content.trim();
+		}
+	}
+
+	const out: IDataObject = {
+		text: chunkset.contents ?? '',
+		jobId: doc.jobId,
+		fileName: doc.fileName,
+		chunksetIndex: chunkset.chunkset_index ?? null,
+		// reduce rather than spread: a chunkset can span thousands of chunks
+		firstChunk: indices.length ? indices.reduce((a, b) => (b < a ? b : a)) : null,
+		lastChunk: indices.length ? indices.reduce((a, b) => (b > a ? b : a)) : null,
+		page,
+	};
+	if (heading !== undefined) out.heading = heading;
+	if (doc.canonicalUrl) out.canonicalUrl = doc.canonicalUrl;
+	withEmbedText(out, chunkset.contents, chunkset.to_embed);
+	return out;
+}
+
+/** One n8n item per chunk: `text` plus the chunk's own fields in camelCase. */
+export function simplifyChunk(chunk: Chunk, doc: DocumentContext): IDataObject {
+	const out: IDataObject = {
+		text: chunk.content ?? '',
+		jobId: doc.jobId,
+		fileName: doc.fileName,
+		chunkIndex: chunk.chunk_index ?? null,
+		parentChunkIndex: chunk.parent_chunk_index ?? null,
+		depth: chunk.depth ?? null,
+		page: chunk.page ?? null,
+		lang: chunk.lang ?? null,
+	};
+	if (doc.canonicalUrl) out.canonicalUrl = doc.canonicalUrl;
+	withEmbedText(out, chunk.content, chunk.to_embed);
+	return out;
+}
+
+/** Maps a results payload to output items per the Return and Simplify settings. */
+export function resultsToItems(
+	results: JobResults,
+	kind: ReturnKind,
+	simplify: boolean,
+	doc: DocumentContext,
+): IDataObject[] {
+	const chunks = (results.chunks ?? []) as Chunk[];
+	const chunksets = (results.chunksets ?? []) as Chunkset[];
+	if (kind === 'chunks') {
+		return simplify ? chunks.map((c) => simplifyChunk(c, doc)) : chunks;
+	}
+	if (!simplify) return chunksets;
+	const byIndex = new Map<number, Chunk>();
+	for (const chunk of chunks) {
+		if (typeof chunk.chunk_index === 'number') byIndex.set(chunk.chunk_index, chunk);
+	}
+	return chunksets.map((cs) => simplifyChunkset(cs, byIndex, doc));
+}

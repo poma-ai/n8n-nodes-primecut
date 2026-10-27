@@ -1,0 +1,48 @@
+{
+  "name": "PrimeCut: chunk a document by URL",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "chunk",
+        "source": "url",
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "wait": true,
+        "timeout": 600,
+        "returnKind": "chunksets",
+        "simplify": true,
+        "chunkOptions": {
+          "canonicalUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+        }
+      },
+      "name": "Chunk document",
+      "type": "n8n-nodes-primecut.primeCut",
+      "typeVersion": 1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "content": "## Chunk a document by URL\n\n1. Add your **PrimeCut API** credential to the PrimeCut node.\n2. Replace the URL with a document PrimeCut can fetch.\n3. Execute. The node waits for the job and returns one item per chunkset: `text` plus `page`, `heading`, `fileName`, `chunksetIndex` and `canonicalUrl`, ready for a vector store loader.",
+        "height": 220,
+        "width": 420
+      },
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -260]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Chunk document", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

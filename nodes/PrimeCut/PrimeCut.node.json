@@ -1,0 +1,41 @@
+{
+	"node": "n8n-nodes-primecut.primeCut",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Data & Storage", "Development"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/poma-ai/n8n-nodes-primecut#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/poma-ai/n8n-nodes-primecut#readme"
+			}
+		]
+	},
+	"alias": [
+		"primecut",
+		"prime cut",
+		"poma",
+		"chunk",
+		"chunking",
+		"chunkset",
+		"chunksets",
+		"text splitter",
+		"document loader",
+		"rag",
+		"retrieval",
+		"embeddings",
+		"vector store",
+		"pdf",
+		"docx",
+		"document",
+		"parse",
+		"parser",
+		"ocr",
+		"extract",
+		"structure"
+	]
+}

@@ -1,0 +1,20 @@
+# Local n8n instance with this package loaded as a custom extension.
+# Build first (npm run build), then: docker compose up
+# n8n reads the built files from ./dist via /custom; rebuild and restart to pick up changes.
+# For a watch-and-reload loop use `npm run dev` instead (the n8n-node CLI).
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    ports:
+      - '127.0.0.1:5678:5678'
+    environment:
+      N8N_CUSTOM_EXTENSIONS: /custom
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_LOG_LEVEL: info
+    volumes:
+      - ./dist:/custom/n8n-nodes-primecut/dist:ro
+      - ./package.json:/custom/n8n-nodes-primecut/package.json:ro
+      - n8n-data:/home/node/.n8n
+
+volumes:
+  n8n-data:

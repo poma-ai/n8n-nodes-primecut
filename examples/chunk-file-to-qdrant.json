@@ -1,0 +1,134 @@
+{
+  "name": "PrimeCut: chunk a file and insert the chunksets into Qdrant",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "url": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "name": "Download file",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "resource": "document",
+        "operation": "chunk",
+        "source": "binary",
+        "binaryPropertyName": "data",
+        "wait": true,
+        "timeout": 600,
+        "returnKind": "chunksets",
+        "simplify": true,
+        "chunkOptions": {}
+      },
+      "name": "Chunk document",
+      "type": "n8n-nodes-primecut.primeCut",
+      "typeVersion": 1,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "qdrantCollection": {
+          "__rl": true,
+          "mode": "id",
+          "value": "primecut-demo"
+        },
+        "options": {}
+      },
+      "name": "Qdrant Vector Store",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
+      "typeVersion": 1,
+      "position": [740, 0]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Embeddings OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [660, 220]
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.text }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              { "name": "page", "value": "={{ $json.page }}" },
+              { "name": "heading", "value": "={{ $json.heading }}" },
+              { "name": "fileName", "value": "={{ $json.fileName }}" },
+              { "name": "chunksetIndex", "value": "={{ $json.chunksetIndex }}" },
+              { "name": "canonicalUrl", "value": "={{ $json.canonicalUrl }}" }
+            ]
+          }
+        }
+      },
+      "name": "Default Data Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [880, 220]
+    },
+    {
+      "parameters": {
+        "chunkSize": 100000,
+        "chunkOverlap": 0,
+        "separator": "\u0000"
+      },
+      "name": "Character Text Splitter",
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [880, 420]
+    },
+    {
+      "parameters": {
+        "content": "## Chunk a file, insert chunksets into Qdrant\n\n1. Add credentials: **PrimeCut API** on the PrimeCut node, Qdrant and OpenAI on their nodes.\n2. The Default Data Loader is set to **Load Specific Data** with `{{ $json.text }}` and **Custom** text splitting; the Character Text Splitter below it uses a chunk size of 100000 so PrimeCut's chunksets are **not split again**. Keep these settings: n8n's default loader re-chunks at 1000 characters and drops the metadata.\n3. The loader's Metadata maps `page`, `heading`, `fileName`, `chunksetIndex` and `canonicalUrl` from each item so agents can cite sources.",
+        "height": 300,
+        "width": 520
+      },
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [0, -340]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Download file", "type": "main", "index": 0 }]]
+    },
+    "Download file": {
+      "main": [[{ "node": "Chunk document", "type": "main", "index": 0 }]]
+    },
+    "Chunk document": {
+      "main": [[{ "node": "Qdrant Vector Store", "type": "main", "index": 0 }]]
+    },
+    "Embeddings OpenAI": {
+      "ai_embedding": [[{ "node": "Qdrant Vector Store", "type": "ai_embedding", "index": 0 }]]
+    },
+    "Default Data Loader": {
+      "ai_document": [[{ "node": "Qdrant Vector Store", "type": "ai_document", "index": 0 }]]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [[{ "node": "Default Data Loader", "type": "ai_textSplitter", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}
