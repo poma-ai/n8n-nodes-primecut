@@ -27,7 +27,6 @@ import {
 	apiRequest,
 	contentDisposition,
 	isSuccess,
-	jsonHeaderValue,
 	urlHeaderValue,
 } from './transport/request';
 
@@ -40,6 +39,7 @@ interface PublicJob {
 	job_id: string;
 	created_at?: string;
 	status?: { status?: string };
+	properties?: { file?: { file_path?: string; size?: number } };
 }
 
 interface ChunkJob extends PendingJob {
@@ -110,6 +110,21 @@ export class PrimeCut implements INodeType {
 			throw nodeError;
 		};
 
+		// Phase 0: check every Chunk item's input before any job is created, so a
+		// missing file on item 3 does not leave items 1 and 2 billed and discarded.
+		for (let i = 0; i < items.length; i++) {
+			try {
+				if (
+					this.getNodeParameter('resource', i) === 'document' &&
+					this.getNodeParameter('operation', i) === 'chunk'
+				) {
+					validateChunkInput.call(this, i);
+				}
+			} catch (error) {
+				if (!this.continueOnFail()) fail(i, error);
+			}
+		}
+
 		// Phase 1: every operation runs now; chunk jobs that wait are only submitted.
 		for (let i = 0; i < items.length; i++) {
 			try {
@@ -140,8 +155,10 @@ export class PrimeCut implements INodeType {
 					}
 					if (!isSuccess(response)) throw apiError.call(this, response, i);
 					const job = response.body as PublicJob;
+					const serverName = job.properties?.file?.file_path;
+					const knownName = typeof serverName === 'string' && serverName ? serverName : fileName;
 					if (wait) {
-						pending.push({ itemIndex: i, jobId: job.job_id, fileName, canonicalUrl });
+						pending.push({ itemIndex: i, jobId: job.job_id, fileName: knownName, canonicalUrl });
 					} else {
 						push(i, {
 							jobId: job.job_id,
@@ -171,9 +188,13 @@ export class PrimeCut implements INodeType {
 					const jobResults = await getJobResults.call(this, jobId, i);
 					const kind = this.getNodeParameter('returnKind', i, 'chunksets') as ReturnKind;
 					const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+					const resultOptions = this.getNodeParameter('resultOptions', i, {}) as {
+						canonicalUrl?: string;
+					};
 					const mapped = resultsToItems(jobResults, kind, simplify, {
 						jobId,
 						fileName: fileNameFromResults(jobResults),
+						canonicalUrl: resultOptions.canonicalUrl?.trim() || undefined,
 					});
 					for (const item of mapped) push(i, item);
 				} else {
@@ -249,7 +270,7 @@ async function buildChunkRequest(
 		const propertyName = this.getNodeParameter('binaryPropertyName', i) as string;
 		const binary = this.helpers.assertBinaryData(i, propertyName);
 		body = await this.helpers.getBinaryDataBuffer(i, propertyName);
-		fileName = binary.fileName || 'document';
+		fileName = binaryFileName(binary);
 		// The API infers the format from the file name. The body is always raw bytes;
 		// application/json would be read as a JSON job description instead.
 		headers['Content-Type'] = 'application/octet-stream';
@@ -269,13 +290,65 @@ async function buildChunkRequest(
 	const canonicalUrl = options.canonicalUrl?.trim() || undefined;
 	if (canonicalUrl) headers['X-Canonical-URL'] = urlHeaderValue(canonicalUrl);
 
+	// The API splits X-Labels on commas (checked live: a JSON array arrives as
+	// broken tags). Labels are stored lowercased; non-ASCII cannot travel in a header.
 	const labels = (options.labels ?? '')
 		.split(',')
 		.map((label) => label.trim())
 		.filter((label) => label.length > 0);
-	if (labels.length > 0) headers['X-Labels'] = jsonHeaderValue(labels);
+	const nonAscii = labels.find((label) => /[^\x20-\x7e]/.test(label));
+	if (nonAscii !== undefined) {
+		throw new NodeOperationError(this.getNode(), `'Labels' contains a non-ASCII label: ${nonAscii}`, {
+			description: 'Use plain ASCII letters, digits and punctuation in labels',
+			itemIndex: i,
+		});
+	}
+	if (labels.length > 0) headers['X-Labels'] = labels.join(',');
 
 	return { body, headers, fileName, canonicalUrl };
+}
+
+/** Checks an item's input before anything is submitted, so a bad item does not orphan jobs already created. */
+function validateChunkInput(this: IExecuteFunctions, i: number): void {
+	const source = this.getNodeParameter('source', i) as string;
+	if (source === 'binary') {
+		const propertyName = this.getNodeParameter('binaryPropertyName', i) as string;
+		this.helpers.assertBinaryData(i, propertyName);
+	} else if (!(this.getNodeParameter('url', i) as string).trim()) {
+		throw new NodeOperationError(this.getNode(), "'URL' is empty", {
+			description: 'Enter the public URL of the document to chunk',
+			itemIndex: i,
+		});
+	}
+}
+
+/** The file name as a binary carries it, with the extension added when the name has none. */
+function binaryFileName(binary: { fileName?: string; fileExtension?: string; mimeType?: string }): string {
+	let name = (binary.fileName ?? '').trim() || 'document';
+	if (!/\.[A-Za-z0-9]{1,8}$/.test(name)) {
+		const ext = (binary.fileExtension ?? '').replace(/^\./, '') || extensionFromMime(binary.mimeType);
+		if (ext) name = `${name}.${ext}`;
+	}
+	return name;
+}
+
+function extensionFromMime(mimeType?: string): string {
+	const map: Record<string, string> = {
+		'application/pdf': 'pdf',
+		'text/plain': 'txt',
+		'text/html': 'html',
+		'text/markdown': 'md',
+		'text/csv': 'csv',
+		'image/png': 'png',
+		'image/jpeg': 'jpg',
+		'application/msword': 'doc',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+		'application/vnd.ms-excel': 'xls',
+		'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+		'application/vnd.ms-powerpoint': 'ppt',
+		'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+	};
+	return map[(mimeType ?? '').split(';')[0].trim().toLowerCase()] ?? '';
 }
 
 function fileNameFromUrl(url: string): string {

@@ -60,14 +60,19 @@ export function simplifyChunkset(
 	const pages = members.map((c) => c.page).filter((p): p is number => typeof p === 'number');
 	const page = pages.find((p) => p > 0) ?? pages[0] ?? 0;
 
+	// A chunkset spans a root-to-leaf path of the document tree (observed: title,
+	// section, body). The heading is the deepest member above the leaf, which is
+	// the nearest section title; a two-member set yields the document title.
 	let heading: string | undefined;
 	if (members.length > 1) {
-		const shallowest = members.reduce((best, c) =>
-			(c.depth ?? Infinity) < (best.depth ?? Infinity) ? c : best,
+		const leafDepth = Math.max(...members.map((c) => c.depth ?? 0));
+		const ancestors = members.filter((c) => (c.depth ?? 0) < leafDepth);
+		const nearest = ancestors.reduce<Chunk | undefined>(
+			(best, c) => (best === undefined || (c.depth ?? 0) > (best.depth ?? 0) ? c : best),
+			undefined,
 		);
-		if (typeof shallowest.content === 'string' && shallowest.content.trim()) {
-			heading = shallowest.content.trim();
-		}
+		const text = typeof nearest?.content === 'string' ? nearest.content.trim() : '';
+		if (text) heading = text.length > 200 ? `${text.slice(0, 197)}...` : text;
 	}
 
 	const out: IDataObject = {

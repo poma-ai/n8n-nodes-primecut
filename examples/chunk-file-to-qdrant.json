@@ -6,7 +6,10 @@
       "name": "When clicking 'Execute workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -22,7 +25,10 @@
       "name": "Download file",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [240, 0]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
@@ -39,7 +45,10 @@
       "name": "Chunk document",
       "type": "n8n-nodes-primecut.primeCut",
       "typeVersion": 1,
-      "position": [480, 0]
+      "position": [
+        480,
+        0
+      ]
     },
     {
       "parameters": {
@@ -54,7 +63,10 @@
       "name": "Qdrant Vector Store",
       "type": "@n8n/n8n-nodes-langchain.vectorStoreQdrant",
       "typeVersion": 1,
-      "position": [740, 0]
+      "position": [
+        740,
+        0
+      ]
     },
     {
       "parameters": {
@@ -63,7 +75,10 @@
       "name": "Embeddings OpenAI",
       "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
       "typeVersion": 1.2,
-      "position": [660, 220]
+      "position": [
+        660,
+        220
+      ]
     },
     {
       "parameters": {
@@ -73,30 +88,50 @@
         "options": {
           "metadata": {
             "metadataValues": [
-              { "name": "page", "value": "={{ $json.page }}" },
-              { "name": "heading", "value": "={{ $json.heading }}" },
-              { "name": "fileName", "value": "={{ $json.fileName }}" },
-              { "name": "chunksetIndex", "value": "={{ $json.chunksetIndex }}" },
-              { "name": "canonicalUrl", "value": "={{ $json.canonicalUrl }}" }
+              {
+                "name": "page",
+                "value": "={{ $json.page }}"
+              },
+              {
+                "name": "heading",
+                "value": "={{ $json.heading }}"
+              },
+              {
+                "name": "fileName",
+                "value": "={{ $json.fileName }}"
+              },
+              {
+                "name": "chunksetIndex",
+                "value": "={{ $json.chunksetIndex }}"
+              },
+              {
+                "name": "canonicalUrl",
+                "value": "={{ $json.canonicalUrl }}"
+              }
             ]
           }
         }
       },
       "name": "Default Data Loader",
       "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
-      "typeVersion": 1,
-      "position": [880, 220]
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        220
+      ]
     },
     {
       "parameters": {
         "chunkSize": 100000,
-        "chunkOverlap": 0,
-        "separator": "\u0000"
+        "chunkOverlap": 0
       },
       "name": "Character Text Splitter",
       "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
       "typeVersion": 1,
-      "position": [880, 420]
+      "position": [
+        880,
+        420
+      ]
     },
     {
       "parameters": {
@@ -107,28 +142,81 @@
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [0, -340]
+      "position": [
+        0,
+        -340
+      ]
     }
   ],
   "connections": {
     "When clicking 'Execute workflow'": {
-      "main": [[{ "node": "Download file", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Download file": {
-      "main": [[{ "node": "Chunk document", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Chunk document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Chunk document": {
-      "main": [[{ "node": "Qdrant Vector Store", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Embeddings OpenAI": {
-      "ai_embedding": [[{ "node": "Qdrant Vector Store", "type": "ai_embedding", "index": 0 }]]
+      "ai_embedding": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Default Data Loader": {
-      "ai_document": [[{ "node": "Qdrant Vector Store", "type": "ai_document", "index": 0 }]]
+      "ai_document": [
+        [
+          {
+            "node": "Qdrant Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Character Text Splitter": {
-      "ai_textSplitter": [[{ "node": "Default Data Loader", "type": "ai_textSplitter", "index": 0 }]]
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

@@ -116,7 +116,7 @@ Keys are per product: index4.ai routes require a project with the `grill` produc
 | Return | options: Chunksets, Chunks | Chunksets | Shown when waiting, and on Job → Get Results. |
 | Simplify | boolean | true | Shown wherever Return is shown. "Whether to return a simplified version of the response instead of the raw data." True: `text` plus up to nine metadata fields per item (4.3). False: the raw chunkset or chunk objects, one per item. |
 | Options → Canonical URL | string | | `X-Canonical-URL`. |
-| Options → Labels | string, comma separated | | Sent as `X-Labels` with a JSON array string value (the API example shows `["confidential", "year:1982"]`). |
+| Options → Labels | string, comma separated | | Sent as `X-Labels: a,b` (comma-separated, ASCII). Checked live 2026-10-27: a JSON array value is split on commas by the server and arrives as broken tags; the comma form lands as `metadata.meta_tags: ["confidential", "year:2026"]`. |
 
 Not exposed in v1: `X-Completion` (the callback's method and payload are not documented in the API spec; add once V3 in section 8 has recorded them), `X-Base-URL`, `X-Meta-Int-*`, `X-Unencrypted-Strings`, `X-Footer-Only`, `X-Include-Links-Summary`, `doc_metadata` (form route only).
 
@@ -163,7 +163,8 @@ PrimeCut → Vector Store (insert) → Default Data Loader with:
 
 - Type of Data: JSON; Mode: Load Specific Data; Data: `{{ $json.text }}`
 - Text Splitting: Custom, with a Character Text Splitter whose chunk size exceeds any chunkset (for example 100000) so nothing is re-split
-- Metadata: `page`, `title`, `fileName`, `chunksetIndex`, `canonicalUrl` mapped from `{{ $json.<field> }}`
+- Metadata: `page`, `heading`, `fileName`, `chunksetIndex`, `canonicalUrl` mapped from `{{ $json.<field> }}`
+- The Default Data Loader must be typeVersion 1.1 or later: version 1 has no Text Splitting mode and always uses the connected splitter (checked against n8n 2.44.7's node definitions)
 
 Without these settings n8n re-chunks at 1000 characters and drops the metadata. This is verified in V1 before the output shape is frozen.
 

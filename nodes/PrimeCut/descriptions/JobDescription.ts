@@ -41,4 +41,23 @@ export const jobFields: INodeProperties[] = [
 		displayOptions: { show: { ...show, operation: ['getStatus', 'getResults'] } },
 	},
 	...resultProperties({ ...show, operation: ['getResults'] }),
+	{
+		displayName: 'Options',
+		name: 'resultOptions',
+		type: 'collection',
+		placeholder: 'Add option',
+		default: {},
+		displayOptions: { show: { ...show, operation: ['getResults'] } },
+		options: [
+			{
+				displayName: 'Canonical URL',
+				name: 'canonicalUrl',
+				type: 'string',
+				default: '',
+				placeholder: 'e.g. https://example.com/docs/report.pdf',
+				description:
+					'Citation URL to put on every item, the same value given when the document was chunked',
+			},
+		],
+	},
 ];

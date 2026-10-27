@@ -49,11 +49,11 @@ export function asJobStatus(body: unknown): JobStatus | undefined {
 /** A PrimeCut job is finished when it failed, was blocked, or is done AND its result is stored. */
 export function isSettled(status: JobStatus): boolean {
 	if (status.status === 'failed' || status.status === 'blocked') return true;
-	return status.status === 'done' && status.download !== undefined;
+	return isResultReady(status);
 }
 
 export function isResultReady(status: JobStatus): boolean {
-	return status.status === 'done' && status.download !== undefined;
+	return status.status === 'done' && status.download !== undefined && status.download !== null;
 }
 
 /**
@@ -81,16 +81,28 @@ export async function getJobResults(
 	itemIndex: number,
 ): Promise<JobResults> {
 	const response = await apiRequest.call(this, 'GET', `/jobs/${encodeURIComponent(jobId)}/results`);
+	if (response.statusCode === 500 && /not ready/i.test(errorText(response.body).text)) {
+		throw new NodeOperationError(this.getNode(), `Job ${jobId} is not finished yet`, {
+			description: 'Check it with Job > Get Status and fetch the results once it is done',
+			itemIndex,
+		});
+	}
 	if (!isSuccess(response)) throw apiError.call(this, response, itemIndex);
 	const results = response.body as JobResults;
 	const skipped = results.skipped_members ?? [];
 	if (skipped.length > 0) {
-		const names = skipped.map((member) => `${member.file} (${member.reason})`).join(', ');
+		const tooLarge = skipped.filter((m) => m.reason === 'too_large').map((m) => m.file);
+		const damaged = skipped.filter((m) => m.reason !== 'too_large').map((m) => m.file);
+		const parts: string[] = [];
+		if (tooLarge.length) parts.push(`too large to return inline: ${tooLarge.join(', ')}`);
+		if (damaged.length) parts.push(`could not be decoded: ${damaged.join(', ')}`);
 		throw new NodeOperationError(
 			this.getNode(),
-			`Results for job ${jobId} are too large to return inline. Download them from the POMA console or use the archive endpoint.`,
+			`Results for job ${jobId} are incomplete (${parts.join('; ')})`,
 			{
-				description: `Members left out: ${names}`,
+				description: tooLarge.length
+					? 'Download the POMA archive for this job from the console or the archive endpoint instead'
+					: 'The result archive is damaged; run the document again',
 				itemIndex,
 			},
 		);
@@ -115,7 +127,7 @@ export function outcomeFromStatus(status: JobStatus): JobOutcome {
 		status: status.status,
 		...(!done && status.code !== undefined ? { code: status.code } : {}),
 		...(status.detail !== undefined && status.detail !== 'done' ? { detail: status.detail } : {}),
-		...(done ? { resultReady: status.download !== undefined } : {}),
+		...(done ? { resultReady: isResultReady(status) } : {}),
 		...(status.usage ? { usage: status.usage } : {}),
 	};
 }
@@ -129,7 +141,8 @@ export function failedJobError(
 	status: JobStatus,
 	itemIndex: number,
 ): NodeOperationError {
-	const code = typeof status.code === 'number' ? status.code : status.status === 'blocked' ? 403 : 500;
+	const rawCode = typeof status.code === 'number' ? status.code : 0;
+	const code = rawCode >= 400 ? rawCode : status.status === 'blocked' ? 403 : 500;
 	const { text, reason } = errorText(status.detail);
 	const detail =
 		text ||
@@ -137,8 +150,9 @@ export function failedJobError(
 			? ''
 			: JSON.stringify(status.detail));
 	const mapped = mapErrorCode(code, detail, reason);
+	const said = detail && !mapped.message.includes(detail) ? ` PrimeCut said: ${detail}.` : '';
 	return new NodeOperationError(this.getNode(), mapped.message, {
-		description: `${mapped.description} (job ${status.job_id})`,
+		description: `${mapped.description} (job ${status.job_id}).${said}`,
 		itemIndex,
 	});
 }

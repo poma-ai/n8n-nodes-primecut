@@ -24,6 +24,19 @@ Observed result shape (this converter, archive `version: "1.0"`): a chunk has `c
 | Credential form | API Key and Project ID; saved and accepted with an account key (test `GET /activeJobs`) |
 | Document > Chunk by URL, wait on, Chunksets, Simplify | Finished in about 20 s. One item: `text`, `jobId`, `fileName: dummy.pdf`, `chunksetIndex 0`, `firstChunk 0`, `lastChunk 2`, `page 1`, `heading "Sample Document Overview"`, `canonicalUrl`, `embedText` |
 
+### Labels header, live (same day)
+
+| `X-Labels` value sent | `metadata.meta_tags` in the results |
+|---|---|
+| `["confidential","year:2026"]` (JSON array) | `['["confidential"', '"year:2026"]']`: the server splits on commas, it does not parse JSON |
+| `confidential,year:2026` | `['confidential', 'year:2026']` |
+
+The node therefore sends labels comma-separated and rejects non-ASCII labels (a header cannot carry them).
+
+### Review harness (mocked n8n, no network), after the review fixes
+
+`scratchpad/review-run-primecut/{out,h,h2}.js`, written by the independent reviewer and rerun after the fixes: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
+
 ### Not yet covered
 
 - Chunk from a binary field through the node in the UI (the mapping and request shape are shared with the tested index4.ai node; the API accepted the same headers in V1)

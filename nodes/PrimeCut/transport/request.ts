@@ -171,12 +171,21 @@ export function mapErrorCode(code: number, detail: string, reason?: string): Map
 					'Check the key in the credential, and that its project (or the Project ID) has the PrimeCut product',
 			};
 		case 402:
+			if (reason === 'legacy_pricing_retired') {
+				return {
+					message: 'The account is on a retired PrimeCut plan',
+					description: 'Switch the account to the current plan at console.poma-ai.com',
+				};
+			}
+			if (reason && !/quota|credit|insufficient/i.test(`${reason} ${detail}`)) {
+				return {
+					message: `Payment is required for this request${suffix}`,
+					description: 'Resolve it at console.poma-ai.com, then run the document again',
+				};
+			}
 			return {
 				message: 'The account has no credits left for this request',
-				description:
-					reason === 'legacy_pricing_retired'
-						? 'Switch the account to the current plan at console.poma-ai.com'
-						: 'Top up credits at console.poma-ai.com',
+				description: 'Top up credits at console.poma-ai.com',
 			};
 		case 403:
 			return {
@@ -193,6 +202,18 @@ export function mapErrorCode(code: number, detail: string, reason?: string): Map
 				return {
 					message: "The 'Project ID' in the credential does not match the project key's project",
 					description: "Clear 'Project ID' when using a project key, or use an account key",
+				};
+			}
+			if (reason === 'orga_has_no_owner') {
+				return {
+					message: 'The project belongs to an organisation without an owner',
+					description: 'Assign an owner to the organisation at console.poma-ai.com',
+				};
+			}
+			if (detail) {
+				return {
+					message: `The request conflicts with the current state${suffix}`,
+					description: 'Check the project and the key in the credential',
 				};
 			}
 			return {

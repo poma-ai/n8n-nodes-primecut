@@ -46,7 +46,7 @@ With **Simplify** on (the default) and **Return** set to Chunksets, each item lo
 }
 ```
 
-`page` is the first page the chunkset's chunks come from (a document-level chunk reports page 0). `heading` is the shallowest chunk in the set, usually the section title. `embedText` appears only when PrimeCut returns a separate embedding variant. Image and table placeholders such as `[IMAGE:Dummy PDF file]` stay inline in `text`.
+`page` is the first page the chunkset's chunks come from (a document-level chunk reports page 0). `heading` is the nearest section title above the chunkset's leaf chunk (the document title for a set directly under the root). `embedText` is PrimeCut's embedding variant of the text (usually the same words with whitespace normalised); embed `text` unless you want it. Image and table placeholders such as `[IMAGE:Dummy PDF file]` stay inline in `text`.
 
 With Return set to Chunks each item carries `text`, `chunkIndex`, `parentChunkIndex`, `depth`, `page`, `lang`. With Simplify off the raw chunkset or chunk objects are returned.
 
@@ -80,7 +80,7 @@ fnm use            # Node 22, from .node-version
 npm install
 npm run lint
 npm run build
-npm run dev        # n8n in Docker with this node loaded, http://localhost:5678
+npm run dev        # the n8n-node CLI starts n8n with this node loaded, http://localhost:5678
 ```
 
 `docker compose up` starts a plain n8n container with the built `dist/` mounted as a custom extension.
