@@ -46,13 +46,30 @@ Qdrant 1.17.1 in Docker on the Mac (`127.0.0.1:6333`), embeddings from Ollama `b
 | Qdrant collection `primecut-demo` | Created by the insert (1024-dim cosine, bge-m3), 1 point |
 | Chunk tree, URL versus binary (live API, same file) | Identical: idx 0 depth 0 "Sample Document Overview" (page 0), idx 1 depth 1 "Dummy PDF file", idx 2 depth 2 body; chunkset [0, 1, 2]. The `heading` rule (deepest member above the leaf) therefore yields "Dummy PDF file" on both paths |
 
+### Job operations, timeout path and a multi-section document, local n8n UI (same day)
+
+Run from `local-test/examples/ui-checks.json` (one branch per check, each leaf executed with Execute step so the one-job-at-a-time plan is never hit).
+
+| Check | Result |
+|---|---|
+| Document > Chunk by URL, Wait for Result off | At once: `{ jobId, status: "pending", createdAt }` |
+| Job > Get Status, `{{ $json.jobId }}` from the item above | First call `{ jobId, status: "pending", code: 0 }`; 40 s later `{ jobId, status: "done", detail: "done (cache hit)", resultReady: true, usage: { credits: 0, pages: 0, product: "pro", tokens: 0, total_runtime_sec: 0 } }`. The API serves a repeated URL from cache at no credit cost |
+| Job > Get Results, Chunksets, Simplify on, Options Canonical URL | The same simplified item as a waited Chunk run, `canonicalUrl` taken from the Get Results options |
+| Job > Get Results, Chunks, Simplify off | Three raw chunk objects; the image chunk carries `image_name: "image_00001.png"` |
+| Chunk by URL, Wait on, Timeout 3 | Node error "Timed out waiting for PrimeCut job <id>" with the description "Raise 'Timeout (Seconds)', or fetch the result later with Job > Get Results using this job ID." Even a cached job takes longer than 3 s |
+| Same with On Error = Continue | One item `{ error: "Timed out waiting for PrimeCut job <id>", jobId, status: "timeout" }`; a following Job > Get Results on `{{ $json.jobId }}` returned the chunkset. It was already finished 8 s after submission, so the "Job … is not finished yet" branch stayed harness-only |
+| Chunk from binary: an HTML file with h1/h2/h3 sections (`local-test/sections.html`, fetched by an HTTP Request node) | 10 chunksets, one per section, from 22 chunks. `fileName: sections.html`; n8n reported the binary's MIME type as `application/json`, PrimeCut went by the file name |
+| `heading` rule on that document | Chunkset 0 (title, intro) → "Orbital Logistics Handbook"; chunkset 1 (section 1 intro) → "1. Scheduling"; chunkset 2 → "1.1 Priority classes"; 3 → "1.2 Slot allocation"; 4 → "2. Loading"; 5 → "2.1 Weight limits"; 6 → "2.2 Hazardous goods"; 7 → "3. Tracking". The nearest section title every time |
+| Raw chunk tree (Job > Get Results, Chunks, Simplify off) | Headings at depth 1 and 2 with `parent_chunk_index` pointing at their section, bodies one level deeper. A duplicate title chunk carries `metadata: "NOISE"`, a per-chunk field not seen on the PDF |
+
+Observations, not defects of the node: a chunkset's `contents` ends with the heading of the first child section (chunkset 0 ends with "1. Scheduling"), which is how PrimeCut builds the path; and because every chunkset path starts at the root title, `firstChunk` is 0 for all of them, so `lastChunk` is the useful one.
+
 ### Review harness (mocked n8n, no network), after the review fixes
 
 `scratchpad/review-run-primecut/{out,h,h2}.js`, written by the independent reviewer and rerun after the fixes: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
 
 ### Not yet covered
 
-- Return = Chunks and Simplify off in the UI (covered by a script against the real results payload)
-- Job > Get Status and Job > Get Results in the UI
+- The "Job … is not finished yet" answer from Job > Get Results in the UI (harness only; the live job finished before the call)
 - A document with tables, to see table placeholders
 - A project API key; a 429 from a real concurrent-job limit
