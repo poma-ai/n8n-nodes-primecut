@@ -58,6 +58,8 @@ n8n's Default Data Loader re-splits text at 1000 characters by default and ignor
 - Character Text Splitter under it with a chunk size larger than any chunkset, for example 100000, so nothing is re-split
 - Metadata on the loader: `page`, `heading`, `fileName`, `chunksetIndex`, `canonicalUrl` mapped from `{{ $json.<field> }}`
 
+Verified against Qdrant 1.17: one point per chunkset, the whole chunkset text as `content`, the mapped fields in the payload. For a local Qdrant, `docker compose up` in this package starts one next to n8n (credential URL `http://qdrant:6333`, no API key, dashboard at http://127.0.0.1:6333/dashboard). The example uses OpenAI embeddings; any embeddings node works in its place, for example Embeddings Ollama with `bge-m3` for a setup with no external keys besides PrimeCut.
+
 ### Chunk behaviour
 
 - Input items are all submitted first, then the node waits for the jobs together under one deadline (**Timeout (Seconds)**, default 600, taken from the first Chunk item).
@@ -83,7 +85,7 @@ npm run build
 npm run dev        # the n8n-node CLI starts n8n with this node loaded, http://localhost:5678
 ```
 
-`docker compose up` starts a plain n8n container with the built `dist/` mounted as a custom extension.
+`docker compose up` starts a plain n8n container with the built `dist/` mounted as a custom extension, plus a Qdrant container for the vector store example.
 
 ## Example workflows
 

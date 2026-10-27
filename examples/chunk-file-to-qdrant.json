@@ -40,7 +40,9 @@
         "timeout": 600,
         "returnKind": "chunksets",
         "simplify": true,
-        "chunkOptions": {}
+        "chunkOptions": {
+          "canonicalUrl": "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf"
+        }
       },
       "name": "Chunk document",
       "type": "n8n-nodes-primecut.primeCut",
@@ -135,8 +137,8 @@
     },
     {
       "parameters": {
-        "content": "## Chunk a file, insert chunksets into Qdrant\n\n1. Add credentials: **PrimeCut API** on the PrimeCut node, Qdrant and OpenAI on their nodes.\n2. The Default Data Loader is set to **Load Specific Data** with `{{ $json.text }}` and **Custom** text splitting; the Character Text Splitter below it uses a chunk size of 100000 so PrimeCut's chunksets are **not split again**. Keep these settings: n8n's default loader re-chunks at 1000 characters and drops the metadata.\n3. The loader's Metadata maps `page`, `heading`, `fileName`, `chunksetIndex` and `canonicalUrl` from each item so agents can cite sources.",
-        "height": 300,
+        "content": "## Chunk a file, insert chunksets into Qdrant\n\n1. Credentials: **PrimeCut API** on the PrimeCut node, **Qdrant** and **OpenAI** on their nodes. For a local Qdrant, `docker compose up` in this package starts one next to n8n: credential URL `http://qdrant:6333`, no API key. Any embeddings node works in place of OpenAI (for example Embeddings Ollama with `bge-m3` for a fully local setup).\n2. The Default Data Loader is set to **Load Specific Data** with `{{ $json.text }}` and **Custom** text splitting; the Character Text Splitter below it uses a chunk size of 100000 so PrimeCut's chunksets are **not split again**. Keep these settings: n8n's default loader re-chunks at 1000 characters and drops the metadata.\n3. The loader's Metadata maps `page`, `heading`, `fileName`, `chunksetIndex` and `canonicalUrl` from each item so agents can cite sources.",
+        "height": 340,
         "width": 520
       },
       "name": "Sticky Note",
