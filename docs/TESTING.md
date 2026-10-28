@@ -105,4 +105,4 @@ A mocked-n8n harness (kept outside the package), written by the independent revi
 - The "Job … is not finished yet" answer from Job > Get Results in the UI (harness only; the live job finished before the call)
 - A document with tables, to see table placeholders
 - A 429 from a real concurrent-job limit
-- The credential-test `rules` messages in the UI (added after the project-key run; the build in the test instance predates them)
+- The PrimeCut credential-test `rules` messages in the UI (the index4.ai ones were checked; the rules are identical apart from the product name)
