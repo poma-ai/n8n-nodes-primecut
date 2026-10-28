@@ -65,13 +65,29 @@ export class PrimeCutApi implements ICredentialType {
 		};
 	};
 
-	// GET /activeJobs answers for account keys (checked live); it lists the
-	// caller's running jobs and is cheap. A key that is not valid answers 401.
+	// GET /activeJobs answers for account keys and project keys (checked live
+	// 2026-10-27 and 2026-10-28); it lists the caller's running jobs and is
+	// cheap. An unknown key answers 401; a key for the other product 403. The
+	// route ignores X-Project-ID, so a mismatched Project ID only shows on the
+	// first Chunk (409).
 	test: ICredentialTestRequest = {
 		request: {
 			baseURL: '={{$credentials.baseUrl}}',
 			url: '/activeJobs',
 			method: 'GET',
 		},
+		rules: [
+			{
+				type: 'responseCode',
+				properties: {
+					value: 403,
+					message: 'This key is for a different product. Use a PrimeCut key: a project key for a PrimeCut project, or an account key.',
+				},
+			},
+			{
+				type: 'responseCode',
+				properties: { value: 401, message: 'The API key was rejected. Check it in the console.' },
+			},
+		],
 	};
 }

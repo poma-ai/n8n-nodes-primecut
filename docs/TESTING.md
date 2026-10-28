@@ -78,6 +78,24 @@ Workflow: Chunk by URL (`dummy.pdf?labels=1`) with Options → Labels `Manual, y
 
 Before the UI run, the mapping was exercised against a saved live results payload with a per-chunk `metadata: "NOISE"` field added: the raw chunk kept it, `documentMetadata` sat beside it, each item held its own copy, and with no metadata block the option still yields `labels: []` and `documentMetadata: {}`.
 
+### Project API key (2026-10-28, a demo PrimeCut project key)
+
+Live API first (curl), then the local n8n UI.
+
+| Check | Result |
+|---|---|
+| `GET /activeJobs` with the project key | 200: the credential test passes for project keys |
+| `GET /projects/info` | 200, `product: "primecut"`, `protected: false`, `is_default: false` |
+| `GET /activeJobs` with a mismatched or a matching `X-Project-ID` | 200 either way: this route ignores the header, so a wrong Project ID in the credential passes the credential test |
+| `POST /primeCut/ingest` with the project key alone, or with its own project as `X-Project-ID` | 201 |
+| `POST /primeCut/ingest` with a mismatched `X-Project-ID` (an index4.ai project of the same account, or a random UUID) | 409 `project_id_conflict`: "X-Project-ID does not match the project this API key is bound to; omit the header or use a key for that project" |
+| `GET /jobs/{id}/status` with a mismatched `X-Project-ID` | 200: job routes ignore the header too |
+| The PrimeCut project key on index4.ai (`GET /docs?limit=1`) | 403 `{"code":403,"error":"API key not valid for this product"}`, not the 401 the spec assumed |
+| UI: credential "PrimeCut project (demo)", project key, Project ID empty | Test passes; Document > Chunk by URL with it returns the usual chunkset item |
+| UI: same credential with Project ID set to an index4.ai project | Credential test still passes (see above); the Chunk run fails with "The 'Project ID' in the credential does not match the project key's project" and the description "Clear 'Project ID' when using a project key, or use an account key" |
+
+Follow-up in code (same day): the 403 "not valid for this product" answer gets its own message in both nodes ("The API key is for a different product"), and both credential tests gained `rules` so n8n shows a specific message on 403 (different product) and 401 (rejected key) instead of its generic failure text.
+
 ### Review harness (mocked n8n, no network), after the review fixes
 
 A mocked-n8n harness (kept outside the package), written by the independent reviewer and rerun after the fixes, checked: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
@@ -86,4 +104,5 @@ A mocked-n8n harness (kept outside the package), written by the independent revi
 
 - The "Job … is not finished yet" answer from Job > Get Results in the UI (harness only; the live job finished before the call)
 - A document with tables, to see table placeholders
-- A project API key; a 429 from a real concurrent-job limit
+- A 429 from a real concurrent-job limit
+- The credential-test `rules` messages in the UI (added after the project-key run; the build in the test instance predates them)

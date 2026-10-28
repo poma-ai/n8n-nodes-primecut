@@ -16,7 +16,7 @@ Create an API key at [console.poma-ai.com](https://console.poma-ai.com), then ad
 | Project key (`poma_proj_…`), bound to one project | the key | leave empty |
 | Account key, can address any of your projects | the key | the project to use, or empty for the account's default PrimeCut project |
 
-The node sends the key as a Bearer token and, when Project ID is set, an `X-Project-ID` header. The credential test lists the account's active jobs (`GET /activeJobs`).
+The node sends the key as a Bearer token and, when Project ID is set, an `X-Project-ID` header. The credential test lists the caller's active jobs (`GET /activeJobs`); an index4.ai key fails it with "This key is for a different product", an unknown key with "The API key was rejected". The test checks the key only: a wrong Project ID passes it and shows up on the first Chunk instead (a project key with a Project ID for another project gets "The 'Project ID' in the credential does not match the project key's project").
 
 ## Operations
 
