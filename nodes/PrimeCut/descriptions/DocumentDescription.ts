@@ -109,7 +109,7 @@ export const documentFields: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. confidential, year:2026',
 				description:
-					'Comma-separated ASCII tags stored with the document. PrimeCut lowercases them; turn on Include Metadata to get them back on each item.',
+					'Comma-separated ASCII tags stored with the document, kept as written. Turn on Include Metadata to get them back on each item.',
 			},
 		],
 	},

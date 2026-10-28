@@ -20,7 +20,7 @@ Observed result shape (this converter, archive `version: "1.0"`): a chunk has `c
 |---|---|
 | Package load | `CUSTOM.primeCut` loads against n8n's bundled n8n-workflow; node appears with its icon |
 | `examples/chunk-url.json` imported via Import from URL | Trigger, PrimeCut node and sticky note on the canvas |
-| Node parameters | Source, URL, Wait for Result, Timeout, Return, Simplify, Options with Canonical URL and Labels; Return and Simplify shown only while waiting |
+| Node parameters | Source, URL, Wait for Result, Timeout, Return, Simplify, Options with Canonical URL, Labels and (since 2026-10-28) Include Metadata; Return and Simplify shown only while waiting |
 | Credential form | API Key and Project ID; saved and accepted with an account key (test `GET /activeJobs`) |
 | Document > Chunk by URL, wait on, Chunksets, Simplify | Finished in about 20 s. One item: `text`, `jobId`, `fileName: dummy.pdf`, `chunksetIndex 0`, `firstChunk 0`, `lastChunk 2`, `page 1`, `heading "Dummy PDF file"` (the depth-1 section title; chunk 0 is the document title), `canonicalUrl`, `embedText` |
 
@@ -63,6 +63,20 @@ Run from `local-test/examples/ui-checks.json` (one branch per check, each leaf e
 | Raw chunk tree (Job > Get Results, Chunks, Simplify off) | Headings at depth 1 and 2 with `parent_chunk_index` pointing at their section, bodies one level deeper. A duplicate title chunk carries `metadata: "NOISE"`, a per-chunk field not seen on the PDF |
 
 Observations, not defects of the node: a chunkset's `contents` ends with the heading of the first child section (chunkset 0 ends with "1. Scheduling"), which is how PrimeCut builds the path; and because every chunkset path starts at the root title, `firstChunk` is 0 for all of them, so `lastChunk` is the useful one.
+
+### Include Metadata option, local n8n UI (2026-10-28)
+
+Workflow: Chunk by URL (`dummy.pdf?labels=1`) with Options → Labels `Manual, year:2026` and Include Metadata on, then Job > Get Results on that job twice: Chunks with Simplify off and Include Metadata on, and Chunksets simplified without the option.
+
+| Check | Result |
+|---|---|
+| Chunk, simplified, Include Metadata on | The usual nine fields plus `labels: ["Manual", "year:2026"]` and `documentMetadata` with `chunk_page_numbering`, `creation_date`, `file_id`, `meta_tags`, `source_file`, `source_type`, `version` |
+| Get Results, Chunks, Simplify off, Include Metadata on | Three raw chunk objects, each with its own fields untouched plus `documentMetadata` |
+| Get Results, simplified, option off | The nine fields only; no `labels`, no `documentMetadata` |
+| Label case | PrimeCut kept `Manual` as written. The option description no longer claims the labels are lowercased |
+| Cache | The query string did not defeat the server cache (`creation_date` from the day before, same `file_id`), yet `meta_tags` carried the new labels: labels are applied per job |
+
+Before the UI run, the mapping was exercised against a saved live results payload with a per-chunk `metadata: "NOISE"` field added: the raw chunk kept it, `documentMetadata` sat beside it, each item held its own copy, and with no metadata block the option still yields `labels: []` and `documentMetadata: {}`.
 
 ### Review harness (mocked n8n, no network), after the review fixes
 
