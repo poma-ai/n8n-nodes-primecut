@@ -81,7 +81,7 @@ export class PrimeCutApi implements ICredentialType {
 				type: 'responseCode',
 				properties: {
 					value: 403,
-					message: 'This key is for a different product. Use a PrimeCut key: a project key for a PrimeCut project, or an account key.',
+					message: 'Refused: the key is for another POMA product. Use a PrimeCut key: a project key for a PrimeCut project, or an account key.',
 				},
 			},
 			{

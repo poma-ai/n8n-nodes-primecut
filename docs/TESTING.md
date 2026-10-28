@@ -1,4 +1,4 @@
-# Test log
+# Manual test log
 
 ## 2026-10-27: live API and local n8n, account API key
 
@@ -48,7 +48,7 @@ Qdrant 1.17.1 in Docker on the Mac (`127.0.0.1:6333`), embeddings from Ollama `b
 
 ### Job operations, timeout path and a multi-section document, local n8n UI (same day)
 
-Run from `local-test/examples/ui-checks.json` (one branch per check, each leaf executed with Execute step so the one-job-at-a-time plan is never hit).
+Run from a check workflow with one branch per check (kept in the workspace repository; each leaf executed with Execute step so the one-job-at-a-time plan is never hit).
 
 | Check | Result |
 |---|---|
@@ -58,7 +58,7 @@ Run from `local-test/examples/ui-checks.json` (one branch per check, each leaf e
 | Job > Get Results, Chunks, Simplify off | Three raw chunk objects; the image chunk carries `image_name: "image_00001.png"` |
 | Chunk by URL, Wait on, Timeout 3 | Node error "Timed out waiting for PrimeCut job <id>" with the description "Raise 'Timeout (Seconds)', or fetch the result later with Job > Get Results using this job ID." Even a cached job takes longer than 3 s |
 | Same with On Error = Continue | One item `{ error: "Timed out waiting for PrimeCut job <id>", jobId, status: "timeout" }`; a following Job > Get Results on `{{ $json.jobId }}` returned the chunkset. It was already finished 8 s after submission, so the "Job … is not finished yet" branch stayed harness-only |
-| Chunk from binary: an HTML file with h1/h2/h3 sections (`local-test/sections.html`, fetched by an HTTP Request node) | 10 chunksets, one per section, from 22 chunks. `fileName: sections.html`; n8n reported the binary's MIME type as `application/json`, PrimeCut went by the file name |
+| Chunk from binary: an HTML file with h1/h2/h3 sections (a 2 kB test page kept in the workspace repository, fetched by an HTTP Request node) | 10 chunksets, one per section, from 22 chunks. `fileName: sections.html`; n8n reported the binary's MIME type as `application/json`, PrimeCut went by the file name |
 | `heading` rule on that document | Chunkset 0 (title, intro) → "Orbital Logistics Handbook"; chunkset 1 (section 1 intro) → "1. Scheduling"; chunkset 2 → "1.1 Priority classes"; 3 → "1.2 Slot allocation"; 4 → "2. Loading"; 5 → "2.1 Weight limits"; 6 → "2.2 Hazardous goods"; 7 → "3. Tracking". The nearest section title every time |
 | Raw chunk tree (Job > Get Results, Chunks, Simplify off) | Headings at depth 1 and 2 with `parent_chunk_index` pointing at their section, bodies one level deeper. A duplicate title chunk carries `metadata: "NOISE"`, a per-chunk field not seen on the PDF |
 
@@ -90,6 +90,7 @@ Live API first (curl), then the local n8n UI.
 | `POST /primeCut/ingest` with the project key alone, or with its own project as `X-Project-ID` | 201 |
 | `POST /primeCut/ingest` with a mismatched `X-Project-ID` (an index4.ai project of the same account, or a random UUID) | 409 `project_id_conflict`: "X-Project-ID does not match the project this API key is bound to; omit the header or use a key for that project" |
 | `GET /jobs/{id}/status` with a mismatched `X-Project-ID` | 200: job routes ignore the header too |
+| Account key with a random `X-Project-ID` | `/activeJobs` 200 (ignored); ingest 403 `{"code":403,"error":"Project not found or access denied"}`, which the node maps to "'Project ID' in the credential is not a project this key can use" |
 | The PrimeCut project key on index4.ai (`GET /docs?limit=1`) | 403 `{"code":403,"error":"API key not valid for this product"}`, not the 401 the spec assumed |
 | UI: credential "PrimeCut project (demo)", project key, Project ID empty | Test passes; Document > Chunk by URL with it returns the usual chunkset item |
 | UI: same credential with Project ID set to an index4.ai project | Credential test still passes (see above); the Chunk run fails with "The 'Project ID' in the credential does not match the project key's project" and the description "Clear 'Project ID' when using a project key, or use an account key" |

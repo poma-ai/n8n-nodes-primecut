@@ -16,7 +16,11 @@ Create an API key at [console.poma-ai.com](https://console.poma-ai.com), then ad
 | Project key (`poma_proj_…`), bound to one project | the key | leave empty |
 | Account key, can address any of your projects | the key | the project to use, or empty for the account's default PrimeCut project |
 
-The node sends the key as a Bearer token and, when Project ID is set, an `X-Project-ID` header. The credential test lists the caller's active jobs (`GET /activeJobs`); an index4.ai key fails it with "This key is for a different product", an unknown key with "The API key was rejected". The test checks the key only: a wrong Project ID passes it and shows up on the first Chunk instead (a project key with a Project ID for another project gets "The 'Project ID' in the credential does not match the project key's project").
+The node sends the key as a Bearer token and, when Project ID is set, an `X-Project-ID` header. The credential test lists the caller's active jobs (`GET /activeJobs`). What it tells you:
+
+- An unknown or expired key: "The API key was rejected".
+- A key for another POMA product (index4.ai): "Refused: the key is for another POMA product".
+- The test checks the key only. A wrong Project ID passes it and shows up on the first Chunk instead: with a project key, "The 'Project ID' in the credential does not match the project key's project"; with an account key, "'Project ID' in the credential is not a project this key can use".
 
 ## Operations
 
@@ -74,7 +78,7 @@ The node declares `usableAsTool`. The operations that make sense for an agent ar
 
 ## Compatibility
 
-Works on current n8n releases. Built against n8n-workflow 2.44 on Node 22, with no runtime dependencies.
+Tested on n8n 2.44 (the `n8nio/n8n` image). Built against n8n-workflow 2.44 on Node 22, with no runtime dependencies.
 
 ## Development
 
