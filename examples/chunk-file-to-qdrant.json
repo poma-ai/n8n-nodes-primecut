@@ -45,7 +45,7 @@
         }
       },
       "name": "Chunk document",
-      "type": "n8n-nodes-primecut.primeCut",
+      "type": "@poma-ai/n8n-nodes-primecut.primeCut",
       "typeVersion": 1,
       "position": [
         480,

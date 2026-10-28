@@ -1,11 +1,11 @@
-# n8n-nodes-primecut
+# @poma-ai/n8n-nodes-primecut
 
 An [n8n](https://n8n.io) community node for [PrimeCut](https://poma-ai.com) by POMA AI. PrimeCut converts documents (PDF, Office files, images, spreadsheets and more) into **chunks** and **chunksets**: structure-aware pieces of text ready for embeddings and vector stores. Use it in place of n8n's default text splitter when you run your own vector store and retrieval.
 
 
 ## Installation
 
-Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n docs. The package name is `n8n-nodes-primecut`.
+Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes/installation/) in the n8n docs. The package name is `@poma-ai/n8n-nodes-primecut`.
 
 ## Credentials
 

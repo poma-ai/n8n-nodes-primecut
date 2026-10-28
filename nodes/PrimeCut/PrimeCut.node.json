@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-primecut.primeCut",
+	"node": "@poma-ai/n8n-nodes-primecut.primeCut",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Data & Storage", "Development"],
