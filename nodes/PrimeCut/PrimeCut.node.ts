@@ -33,6 +33,7 @@ import {
 interface ChunkOptions {
 	canonicalUrl?: string;
 	labels?: string;
+	includeMetadata?: boolean;
 }
 
 interface PublicJob {
@@ -190,11 +191,13 @@ export class PrimeCut implements INodeType {
 					const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 					const resultOptions = this.getNodeParameter('resultOptions', i, {}) as {
 						canonicalUrl?: string;
+						includeMetadata?: boolean;
 					};
 					const mapped = resultsToItems(jobResults, kind, simplify, {
 						jobId,
 						fileName: fileNameFromResults(jobResults),
 						canonicalUrl: resultOptions.canonicalUrl?.trim() || undefined,
+						metadata: resultOptions.includeMetadata ? (jobResults.metadata ?? {}) : undefined,
 					});
 					for (const item of mapped) push(i, item);
 				} else {
@@ -235,10 +238,12 @@ export class PrimeCut implements INodeType {
 					const kind = this.getNodeParameter('returnKind', i, 'chunksets') as ReturnKind;
 					const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 					const jobResults = await getJobResults.call(this, job.jobId, i);
+					const chunkOptions = this.getNodeParameter('chunkOptions', i, {}) as ChunkOptions;
 					const mapped = resultsToItems(jobResults, kind, simplify, {
 						jobId: job.jobId,
 						fileName: job.fileName,
 						canonicalUrl: job.canonicalUrl,
+						metadata: chunkOptions.includeMetadata ? (jobResults.metadata ?? {}) : undefined,
 					});
 					for (const item of mapped) push(i, item);
 				} catch (error) {

@@ -58,6 +58,14 @@ export const jobFields: INodeProperties[] = [
 				description:
 					'Citation URL to put on every item, the same value given when the document was chunked',
 			},
+			{
+				displayName: 'Include Metadata',
+				name: 'includeMetadata',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to add the document details PrimeCut stored (source file and type, labels, creation date) to every item as documentMetadata, plus a flat labels array on simplified items',
+			},
 		],
 	},
 ];

@@ -95,13 +95,21 @@ export const documentFields: INodeProperties[] = [
 					'Citation URL stored with the document and returned on every item, so downstream search results can cite the source',
 			},
 			{
+				displayName: 'Include Metadata',
+				name: 'includeMetadata',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to add the document details PrimeCut stored (source file and type, labels, creation date) to every item as documentMetadata, plus a flat labels array on simplified items',
+			},
+			{
 				displayName: 'Labels',
 				name: 'labels',
 				type: 'string',
 				default: '',
 				placeholder: 'e.g. confidential, year:2026',
 				description:
-					'Comma-separated ASCII tags stored with the document (returned as meta_tags in the raw results). PrimeCut lowercases them.',
+					'Comma-separated ASCII tags stored with the document. PrimeCut lowercases them; turn on Include Metadata to get them back on each item.',
 			},
 		],
 	},

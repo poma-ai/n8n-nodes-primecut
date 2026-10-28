@@ -9,6 +9,8 @@ export interface DocumentContext {
 	jobId: string;
 	fileName: string;
 	canonicalUrl?: string;
+	/** The results' metadata block, present only when the user asked for it. */
+	metadata?: IDataObject;
 }
 
 interface Chunk extends IDataObject {
@@ -41,6 +43,28 @@ export function fileNameFromResults(results: JobResults): string {
 
 function withEmbedText(target: IDataObject, text: string | undefined, embed: string | undefined) {
 	if (typeof embed === 'string' && embed !== text) target.embedText = embed;
+}
+
+/** The document's labels, which PrimeCut stores as `meta_tags` in the results' metadata. */
+export function labelsFromMetadata(metadata: IDataObject | undefined): string[] {
+	const tags = metadata?.meta_tags;
+	return Array.isArray(tags) ? tags.filter((t): t is string => typeof t === 'string') : [];
+}
+
+/**
+ * Adds the results' metadata block to an item when the user asked for it, as
+ * `documentMetadata`: a raw chunk can carry a `metadata` field of its own
+ * (observed: `"NOISE"` on a duplicate title chunk), which must stay intact.
+ * Simplified items also get a flat `labels` array, so a vector store loader
+ * can map it like the other flat fields. Each item gets its own copy, so a
+ * downstream node editing one item in place cannot change the others.
+ */
+function withMetadata(item: IDataObject, doc: DocumentContext, simplified: boolean): IDataObject {
+	if (!doc.metadata) return item;
+	const out: IDataObject = { ...item };
+	if (simplified) out.labels = labelsFromMetadata(doc.metadata);
+	out.documentMetadata = { ...doc.metadata };
+	return out;
 }
 
 /**
@@ -118,12 +142,14 @@ export function resultsToItems(
 	const chunks = (results.chunks ?? []) as Chunk[];
 	const chunksets = (results.chunksets ?? []) as Chunkset[];
 	if (kind === 'chunks') {
-		return simplify ? chunks.map((c) => simplifyChunk(c, doc)) : chunks;
+		return simplify
+			? chunks.map((c) => withMetadata(simplifyChunk(c, doc), doc, true))
+			: chunks.map((c) => withMetadata(c, doc, false));
 	}
-	if (!simplify) return chunksets;
+	if (!simplify) return chunksets.map((cs) => withMetadata(cs, doc, false));
 	const byIndex = new Map<number, Chunk>();
 	for (const chunk of chunks) {
 		if (typeof chunk.chunk_index === 'number') byIndex.set(chunk.chunk_index, chunk);
 	}
-	return chunksets.map((cs) => simplifyChunkset(cs, byIndex, doc));
+	return chunksets.map((cs) => withMetadata(simplifyChunkset(cs, byIndex, doc), doc, true));
 }
