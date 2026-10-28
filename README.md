@@ -20,7 +20,7 @@ The node sends the key as a Bearer token and, when Project ID is set, an `X-Proj
 
 - An unknown or expired key: "The API key was rejected".
 - A key for another POMA product (index4.ai): "Refused: the key is for another POMA product".
-- The test checks the key only. A wrong Project ID passes it and shows up on the first Chunk instead: with a project key, "The 'Project ID' in the credential does not match the project key's project"; with an account key, "'Project ID' in the credential is not a project this key can use".
+- The test checks the key only. A Project ID that is not a UUID is rejected by the node before any request ("'Project ID' in the credential is not a UUID"). A well-formed but wrong Project ID passes the test and shows up on the first Chunk instead: with a project key, "The 'Project ID' in the credential does not match the project key's project"; with an account key, "'Project ID' in the credential is not a project this key can use".
 
 ## Operations
 
@@ -51,7 +51,7 @@ With **Simplify** on (the default) and **Return** set to Chunksets, each item lo
 
 `page` is the first page the chunkset's chunks come from (a document-level chunk reports page 0). `heading` is the nearest section title above the chunkset's leaf chunk (the document title for a set directly under the root). A chunkset is a root-to-leaf path through the document, so `firstChunk` is usually 0 and `lastChunk` identifies the set. `embedText` is PrimeCut's embedding variant of the text (usually the same words with whitespace normalised); embed `text` unless you want it. Image and table placeholders such as `[IMAGE:Dummy PDF file]` stay inline in `text`.
 
-With Return set to Chunks each item carries `text`, `chunkIndex`, `parentChunkIndex`, `depth`, `page`, `lang`. With Simplify off the raw chunkset or chunk objects are returned.
+With Return set to Chunks each item carries `text`, `chunkIndex`, `parentChunkIndex`, `depth`, `page`, `lang`, plus the same `jobId`, `fileName`, `canonicalUrl` and `embedText` fields as above. `embedText` only appears when it differs from `text`. With Simplify off the raw chunkset or chunk objects are returned. A document that yields no chunks produces no items, so a downstream node simply does not run.
 
 **Include Metadata**, under Options on both Chunk and Get Results, adds `documentMetadata` to every item: the details PrimeCut stored with the document (`source_file`, `source_type`, `file_id`, `version`, `creation_date`, `chunk_page_numbering` and the labels as `meta_tags`). Simplified items also get `labels`, the document's labels as an array, ready to map into a vector store payload for filtering. It is off by default, and without it the output is exactly as shown above.
 
@@ -103,7 +103,7 @@ Importable workflows live in [`examples/`](examples). In n8n, choose **Import fr
 
 ## Release
 
-A version tag triggers `.github/workflows/publish.yml`, which builds the package and publishes it to npm with a provenance statement. `npm run release` lints, builds, bumps the version, tags and pushes.
+A version tag triggers `.github/workflows/publish.yml`, which checks that the tag matches `package.json`, lints, builds and publishes the package to npm with a provenance statement through npm trusted publishing. To release: set the version in `package.json`, date the entry in `CHANGELOG.md`, commit, then `git tag <version> && git push origin main <version>`.
 
 ## Resources
 

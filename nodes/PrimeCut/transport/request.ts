@@ -318,13 +318,6 @@ export function contentDisposition(fileName: string): string {
 	return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
 
-/** JSON for a header: non-ASCII characters become \uXXXX escapes so the value survives Latin-1 transport. */
-export function jsonHeaderValue(value: unknown): string {
-	return JSON.stringify(value).replace(
-		/[\u007f-\uffff]/g,
-		(c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`,
-	);
-}
 
 /**
  * A URL for a header. ASCII URLs pass through untouched. A URL with non-ASCII

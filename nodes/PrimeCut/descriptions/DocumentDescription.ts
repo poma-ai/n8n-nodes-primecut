@@ -92,7 +92,7 @@ export const documentFields: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. https://example.com/docs/report.pdf',
 				description:
-					'Citation URL stored with the document and returned on every item, so downstream search results can cite the source',
+					'Citation URL stored with the document and, when waiting for the result, returned on every item so downstream search results can cite the source',
 			},
 			{
 				displayName: 'Include Metadata',
@@ -100,7 +100,7 @@ export const documentFields: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description:
-					'Whether to add the document details PrimeCut stored (source file and type, labels, creation date) to every item as documentMetadata, plus a flat labels array on simplified items',
+					'Whether to add the document details PrimeCut stored (source file and type, labels, creation date) to every item as documentMetadata, plus a flat labels array on simplified items. Applies when waiting for the result.',
 			},
 			{
 				displayName: 'Labels',
@@ -109,7 +109,7 @@ export const documentFields: INodeProperties[] = [
 				default: '',
 				placeholder: 'e.g. confidential, year:2026',
 				description:
-					'Comma-separated ASCII tags stored with the document, kept as written. Turn on Include Metadata to get them back on each item.',
+					'Comma-separated ASCII tags stored with the document, kept as written. Turn on Include Metadata to get them back on each item when waiting for the result.',
 			},
 		],
 	},

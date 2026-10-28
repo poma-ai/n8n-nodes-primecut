@@ -2,7 +2,7 @@
 
 ## 2026-10-27: live API and local n8n, account API key
 
-### Live API (curl, `https://api.poma-ai.com/v3`), spec check V1
+### Live API (curl, `https://api.poma-ai.com/v3`)
 
 | Check | Result |
 |---|---|
@@ -12,7 +12,7 @@
 | `GET /jobs/{id}/status` polled every 3 s | `pending` three times, then `done` with a `download` block (`download_url`, `size`, `mime_type`, `expires_at`, `converter_id`), `usage` (credits 1, pages 1, tokens 9, 14 s runtime) |
 | `GET /jobs/{id}/results` | `chunks` (3), `chunksets` (1), `images` (1), `metadata` (7 keys); no `tables`, `code` or `skipped_members` |
 
-Observed result shape (this converter, archive `version: "1.0"`): a chunk has `chunk_index`, `content`, `depth`, `file_id`, `lang`, `lang_confidence`, `page`, `parent_chunk_index`, `to_embed`; a chunkset has `chunkset_index`, `chunks` (indices), `contents`, `file_id`, `to_embed`; `metadata` has `source_file`, `source_type`, `file_id`, `version`, `chunk_page_numbering: "original_1based"`, `creation_date`, `meta_tags`. The document-level chunk reports `page: 0`. Image placeholders stay inline: `[IMAGE:Dummy PDF file]`, with the asset under `images.image_00001`. The spec's section 4.3 was rewritten to this shape (no `start_chunk`, `tokens` or `title`).
+Observed result shape (this converter, archive `version: "1.0"`): a chunk has `chunk_index`, `content`, `depth`, `file_id`, `lang`, `lang_confidence`, `page`, `parent_chunk_index`, `to_embed`; a chunkset has `chunkset_index`, `chunks` (indices), `contents`, `file_id`, `to_embed`; `metadata` has `source_file`, `source_type`, `file_id`, `version`, `chunk_page_numbering: "original_1based"`, `creation_date`, `meta_tags`. The document-level chunk reports `page: 0`. Image placeholders stay inline: `[IMAGE:Dummy PDF file]`, with the asset under `images.image_00001`.
 
 ### Local n8n UI (`n8nio/n8n:latest`, custom extension, same instance as the index4.ai tests)
 
@@ -48,7 +48,7 @@ Qdrant 1.17.1 in Docker on the Mac (`127.0.0.1:6333`), embeddings from Ollama `b
 
 ### Job operations, timeout path and a multi-section document, local n8n UI (same day)
 
-Run from a check workflow with one branch per check (kept in the workspace repository; each leaf executed with Execute step so the one-job-at-a-time plan is never hit).
+Run from a check workflow with one branch per check (`examples/` has the shipped examples; each leaf executed with Execute step so the one-job-at-a-time plan is never hit).
 
 | Check | Result |
 |---|---|
@@ -58,7 +58,7 @@ Run from a check workflow with one branch per check (kept in the workspace repos
 | Job > Get Results, Chunks, Simplify off | Three raw chunk objects; the image chunk carries `image_name: "image_00001.png"` |
 | Chunk by URL, Wait on, Timeout 3 | Node error "Timed out waiting for PrimeCut job <id>" with the description "Raise 'Timeout (Seconds)', or fetch the result later with Job > Get Results using this job ID." Even a cached job takes longer than 3 s |
 | Same with On Error = Continue | One item `{ error: "Timed out waiting for PrimeCut job <id>", jobId, status: "timeout" }`; a following Job > Get Results on `{{ $json.jobId }}` returned the chunkset. It was already finished 8 s after submission, so the "Job … is not finished yet" branch stayed harness-only |
-| Chunk from binary: an HTML file with h1/h2/h3 sections (a 2 kB test page kept in the workspace repository, fetched by an HTTP Request node) | 10 chunksets, one per section, from 22 chunks. `fileName: sections.html`; n8n reported the binary's MIME type as `application/json`, PrimeCut went by the file name |
+| Chunk from binary: an HTML file with h1/h2/h3 sections (a 2 kB test page with ten sections, fetched by an HTTP Request node) | 10 chunksets, one per section, from 22 chunks. `fileName: sections.html`; n8n reported the binary's MIME type as `application/json`, PrimeCut went by the file name |
 | `heading` rule on that document | Chunkset 0 (title, intro) → "Orbital Logistics Handbook"; chunkset 1 (section 1 intro) → "1. Scheduling"; chunkset 2 → "1.1 Priority classes"; 3 → "1.2 Slot allocation"; 4 → "2. Loading"; 5 → "2.1 Weight limits"; 6 → "2.2 Hazardous goods"; 7 → "3. Tracking". The nearest section title every time |
 | Raw chunk tree (Job > Get Results, Chunks, Simplify off) | Headings at depth 1 and 2 with `parent_chunk_index` pointing at their section, bodies one level deeper. A duplicate title chunk carries `metadata: "NOISE"`, a per-chunk field not seen on the PDF |
 
@@ -91,15 +91,15 @@ Live API first (curl), then the local n8n UI.
 | `POST /primeCut/ingest` with a mismatched `X-Project-ID` (an index4.ai project of the same account, or a random UUID) | 409 `project_id_conflict`: "X-Project-ID does not match the project this API key is bound to; omit the header or use a key for that project" |
 | `GET /jobs/{id}/status` with a mismatched `X-Project-ID` | 200: job routes ignore the header too |
 | Account key with a random `X-Project-ID` | `/activeJobs` 200 (ignored); ingest 403 `{"code":403,"error":"Project not found or access denied"}`, which the node maps to "'Project ID' in the credential is not a project this key can use" |
-| The PrimeCut project key on index4.ai (`GET /docs?limit=1`) | 403 `{"code":403,"error":"API key not valid for this product"}`, not the 401 the spec assumed |
+| The PrimeCut project key on index4.ai (`GET /docs?limit=1`) | 403 `{"code":403,"error":"API key not valid for this product"}`, not a 401 |
 | UI: credential "PrimeCut project (demo)", project key, Project ID empty | Test passes; Document > Chunk by URL with it returns the usual chunkset item |
 | UI: same credential with Project ID set to an index4.ai project | Credential test still passes (see above); the Chunk run fails with "The 'Project ID' in the credential does not match the project key's project" and the description "Clear 'Project ID' when using a project key, or use an account key" |
 
 Follow-up in code (same day): the 403 "not valid for this product" answer gets its own message in both nodes ("The API key is for a different product"), and both credential tests gained `rules` so n8n shows a specific message on 403 (different product) and 401 (rejected key) instead of its generic failure text.
 
-### Review harness (mocked n8n, no network), after the review fixes
+### Harness (mocked n8n, no network), after the review fixes
 
-A mocked-n8n harness (kept outside the package), written by the independent reviewer and rerun after the fixes, checked: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
+A mocked-n8n harness (kept outside the package), written during review and rerun after the fixes, checked: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
 
 ### Not yet covered
 

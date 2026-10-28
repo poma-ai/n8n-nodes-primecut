@@ -149,7 +149,14 @@ export function failedJobError(
 		(status.detail === undefined || typeof status.detail === 'string'
 			? ''
 			: JSON.stringify(status.detail));
-	const mapped = mapErrorCode(code, detail, reason);
+	// 401, 404 and 429 on a job describe the document's source, not this request:
+	// the HTTP-route wording ("check the job ID", "the key was rejected") would mislead.
+	const mapped = [401, 404, 429].includes(code)
+		? {
+				message: `PrimeCut could not process the document (code ${code})`,
+				description: 'The source could not be fetched or read. Check the URL or file and try again',
+			}
+		: mapErrorCode(code, detail, reason);
 	const said = detail && !mapped.message.includes(detail) ? ` PrimeCut said: ${detail}.` : '';
 	return new NodeOperationError(this.getNode(), mapped.message, {
 		description: `${mapped.description} (job ${status.job_id}).${said}`,

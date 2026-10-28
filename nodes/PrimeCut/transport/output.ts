@@ -1,4 +1,4 @@
-import type { IDataObject } from 'n8n-workflow';
+import { deepCopy, type IDataObject } from 'n8n-workflow';
 
 import type { JobResults } from './jobs';
 
@@ -63,7 +63,7 @@ function withMetadata(item: IDataObject, doc: DocumentContext, simplified: boole
 	if (!doc.metadata) return item;
 	const out: IDataObject = { ...item };
 	if (simplified) out.labels = labelsFromMetadata(doc.metadata);
-	out.documentMetadata = { ...doc.metadata };
+	out.documentMetadata = deepCopy(doc.metadata);
 	return out;
 }
 
@@ -89,7 +89,7 @@ export function simplifyChunkset(
 	// the nearest section title; a two-member set yields the document title.
 	let heading: string | undefined;
 	if (members.length > 1) {
-		const leafDepth = Math.max(...members.map((c) => c.depth ?? 0));
+		const leafDepth = members.reduce((max, c) => Math.max(max, c.depth ?? 0), 0);
 		const ancestors = members.filter((c) => (c.depth ?? 0) < leafDepth);
 		const nearest = ancestors.reduce<Chunk | undefined>(
 			(best, c) => (best === undefined || (c.depth ?? 0) > (best.depth ?? 0) ? c : best),

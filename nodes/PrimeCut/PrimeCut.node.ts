@@ -134,8 +134,7 @@ export class PrimeCut implements INodeType {
 
 				if (resource === 'document' && operation === 'chunk') {
 					const wait = this.getNodeParameter('wait', i, true) as boolean;
-					const timeout = this.getNodeParameter('timeout', i, 600) as number;
-					if (deadline === 0) deadline = Date.now() + Math.max(1, timeout) * 1000;
+					if (deadline === 0) deadline = Date.now() + timeoutSeconds(this.getNodeParameter('timeout', i, 600)) * 1000;
 
 					const { fileName, canonicalUrl, ...request } = await buildChunkRequest.call(this, i);
 					const response = await submitWithPacing.call(
@@ -295,9 +294,18 @@ async function buildChunkRequest(
 	const canonicalUrl = options.canonicalUrl?.trim() || undefined;
 	if (canonicalUrl) headers['X-Canonical-URL'] = urlHeaderValue(canonicalUrl);
 
-	// The API splits X-Labels on commas (checked live: a JSON array arrives as
-	// broken tags). Labels are stored lowercased; non-ASCII cannot travel in a header.
-	const labels = (options.labels ?? '')
+	const labels = parseLabels.call(this, options.labels, i);
+	if (labels.length > 0) headers['X-Labels'] = labels.join(',');
+
+	return { body, headers, fileName, canonicalUrl };
+}
+
+/**
+ * The API splits X-Labels on commas (checked live: a JSON array arrives as
+ * broken tags). Labels are kept as written; non-ASCII cannot travel in a header.
+ */
+function parseLabels(this: IExecuteFunctions, raw: unknown, i: number): string[] {
+	const labels = String(raw ?? '')
 		.split(',')
 		.map((label) => label.trim())
 		.filter((label) => label.length > 0);
@@ -308,13 +316,22 @@ async function buildChunkRequest(
 			itemIndex: i,
 		});
 	}
-	if (labels.length > 0) headers['X-Labels'] = labels.join(',');
+	return labels;
+}
 
-	return { body, headers, fileName, canonicalUrl };
+/**
+ * The timeout as a positive number of seconds. An expression that yields
+ * nothing or text falls back to the default instead of a NaN deadline, which
+ * would make polling spin without pause.
+ */
+function timeoutSeconds(raw: unknown): number {
+	const seconds = Number(raw);
+	return Number.isFinite(seconds) && seconds > 0 ? seconds : 600;
 }
 
 /** Checks an item's input before anything is submitted, so a bad item does not orphan jobs already created. */
 function validateChunkInput(this: IExecuteFunctions, i: number): void {
+	parseLabels.call(this, (this.getNodeParameter('chunkOptions', i, {}) as ChunkOptions).labels, i);
 	const source = this.getNodeParameter('source', i) as string;
 	if (source === 'binary') {
 		const propertyName = this.getNodeParameter('binaryPropertyName', i) as string;
