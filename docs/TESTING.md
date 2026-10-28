@@ -66,7 +66,7 @@ Observations, not defects of the node: a chunkset's `contents` ends with the hea
 
 ### Review harness (mocked n8n, no network), after the review fixes
 
-`scratchpad/review-run-primecut/{out,h,h2}.js`, written by the independent reviewer and rerun after the fixes: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
+A mocked-n8n harness (kept outside the package), written by the independent reviewer and rerun after the fixes, checked: done-without-download keeps polling and the final round at the deadline collects a late finish; `download: null` is treated as not ready; `/results` 500 "job not ready" maps to "Job … is not finished yet"; a 401 on one job's status stays with that item; 429 pacing retries under one deadline and reports "No job slot became free for '<file>'"; `no_default_project`, `orga_has_no_owner` and a 402 egress reason get their own messages; a binary with no file name goes out as `document.pdf` (extension from the MIME type); item order and `pairedItem` hold in mixed batches.
 
 ### Not yet covered
 

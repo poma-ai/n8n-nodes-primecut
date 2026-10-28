@@ -2,7 +2,6 @@
 
 An [n8n](https://n8n.io) community node for [PrimeCut](https://poma-ai.com) by POMA AI. PrimeCut converts documents (PDF, Office files, images, spreadsheets and more) into **chunks** and **chunksets**: structure-aware pieces of text ready for embeddings and vector stores. Use it in place of n8n's default text splitter when you run your own vector store and retrieval.
 
-The node is built to n8n's verified community node rules: no runtime dependencies, programmatic style, published from GitHub Actions with npm provenance.
 
 ## Installation
 
@@ -33,20 +32,20 @@ With **Simplify** on (the default) and **Return** set to Chunksets, each item lo
 
 ```json
 {
-  "text": "Sample Document Overview\nDummy PDF file",
+  "text": "Sample Document Overview\nDummy PDF file\n[IMAGE:Dummy PDF file]",
   "jobId": "6fc01271-…",
   "fileName": "report.pdf",
   "chunksetIndex": 0,
   "firstChunk": 0,
   "lastChunk": 2,
   "page": 1,
-  "heading": "Sample Document Overview",
+  "heading": "Dummy PDF file",
   "canonicalUrl": "https://example.com/report.pdf",
   "embedText": "…"
 }
 ```
 
-`page` is the first page the chunkset's chunks come from (a document-level chunk reports page 0). `heading` is the nearest section title above the chunkset's leaf chunk (the document title for a set directly under the root). `embedText` is PrimeCut's embedding variant of the text (usually the same words with whitespace normalised); embed `text` unless you want it. Image and table placeholders such as `[IMAGE:Dummy PDF file]` stay inline in `text`.
+`page` is the first page the chunkset's chunks come from (a document-level chunk reports page 0). `heading` is the nearest section title above the chunkset's leaf chunk (the document title for a set directly under the root). A chunkset is a root-to-leaf path through the document, so `firstChunk` is usually 0 and `lastChunk` identifies the set. `embedText` is PrimeCut's embedding variant of the text (usually the same words with whitespace normalised); embed `text` unless you want it. Image and table placeholders such as `[IMAGE:Dummy PDF file]` stay inline in `text`.
 
 With Return set to Chunks each item carries `text`, `chunkIndex`, `parentChunkIndex`, `depth`, `page`, `lang`. With Simplify off the raw chunkset or chunk objects are returned.
 
@@ -58,7 +57,7 @@ n8n's Default Data Loader re-splits text at 1000 characters by default and ignor
 - Character Text Splitter under it with a chunk size larger than any chunkset, for example 100000, so nothing is re-split
 - Metadata on the loader: `page`, `heading`, `fileName`, `chunksetIndex`, `canonicalUrl` mapped from `{{ $json.<field> }}`
 
-Verified against Qdrant 1.17: one point per chunkset, the whole chunkset text as `content`, the mapped fields in the payload. For a local Qdrant, `docker compose up` in this package starts one next to n8n (credential URL `http://qdrant:6333`, no API key, dashboard at http://127.0.0.1:6333/dashboard). The example uses OpenAI embeddings; any embeddings node works in its place, for example Embeddings Ollama with `bge-m3` for a setup with no external keys besides PrimeCut.
+With these settings Qdrant stores one point per chunkset, the whole chunkset text as `content` and the mapped fields in the payload. For a local Qdrant, `docker compose up` in this package starts one next to n8n (credential URL `http://qdrant:6333`, no API key, dashboard at http://127.0.0.1:6333/dashboard). The example uses OpenAI embeddings; any embeddings node works in its place, for example Embeddings Ollama with `bge-m3` for a setup with no external keys besides PrimeCut.
 
 ### Chunk behaviour
 
@@ -73,7 +72,7 @@ The node declares `usableAsTool`. The operations that make sense for an agent ar
 
 ## Compatibility
 
-Built against n8n-workflow 2.44 on Node 22. The compiled files load against the n8n-workflow bundled in the current `n8nio/n8n` image.
+Works on current n8n releases. Built against n8n-workflow 2.44 on Node 22, with no runtime dependencies.
 
 ## Development
 
@@ -98,7 +97,7 @@ Importable workflows live in [`examples/`](examples). In n8n, choose **Import fr
 
 ## Release
 
-Releases are published by `.github/workflows/publish.yml` on a version tag, with an npm provenance statement, as n8n requires for verified community nodes since May 2026. Run `npm run release` to lint, build, bump, tag and push.
+A version tag triggers `.github/workflows/publish.yml`, which builds the package and publishes it to npm with a provenance statement. `npm run release` lints, builds, bumps the version, tags and pushes.
 
 ## Resources
 
