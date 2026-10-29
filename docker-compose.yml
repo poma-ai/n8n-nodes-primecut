@@ -3,7 +3,7 @@
 # n8n reads the built files from ./dist via /custom; rebuild and restart to pick up changes.
 # For a watch-and-reload loop use `npm run dev` instead (the n8n-node CLI).
 # The qdrant service backs examples/chunk-file-to-qdrant.json: inside n8n its URL is http://qdrant:6333,
-# from the Mac http://127.0.0.1:6333 (dashboard at /dashboard).
+# from the host http://127.0.0.1:6333 (dashboard at /dashboard).
 services:
   n8n:
     image: n8nio/n8n:latest
