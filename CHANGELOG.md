@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Node and credential icon is the POMA mark instead of a generic document drawing.
+
 ## 0.1.1 (2026-10-29)
 
 - Published through npm trusted publishing (GitHub Actions OIDC) instead of an access token. No functional changes.
