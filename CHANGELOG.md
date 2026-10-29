@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 (2026-10-29)
+
+- Published through npm trusted publishing (GitHub Actions OIDC) instead of an access token. No functional changes.
+
 ## 0.1.0 (2026-10-29)
 
 - PrimeCut node: Document (Chunk from a file or URL, wait for the job, return chunksets or chunks), Job (Get Status, Get Results).
