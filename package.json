@@ -1,6 +1,6 @@
 {
   "name": "@poma-ai/n8n-nodes-primecut",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "n8n community node for PrimeCut by POMA AI: turn documents into chunks and chunksets for RAG pipelines",
   "license": "MIT",
   "homepage": "https://poma-ai.com",

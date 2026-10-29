@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-10-29)
 
 - Node and credential icon is the POMA mark instead of a generic document drawing.
 
